@@ -111,7 +111,7 @@ def run_data(path, input_name, system_name, traj_name, temp_name, visc_name):
     df = df_thermo.merge(df_visc)
 
     # Calculate and shift time so that the minimum time is zero
-    df['TimeStep'] = df['TimeStep']-min(df['TimeStep'])
+    df['TimeStep'] -= min(df['TimeStep'])
     df['time'] = df['TimeStep'].apply(lambda x: x*params['timestep'])
 
     # The hold temperature
@@ -191,7 +191,7 @@ def run_iterator(
         job = item.strip(job)
 
         # Progress print
-        print('Analyzing run ('+str(count)+'/'+runs+'): '+job)
+        print('Analyzing ('+str(count)+'/'+runs+'): '+job)
 
         df, units = run_data(item, *args, **kwargs)  # Data
         fig, ax = run_plot(df, units)  # Plots

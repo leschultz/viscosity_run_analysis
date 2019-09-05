@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Programs
+PYTHON="python3"                        # Python version installed (3 or above)
+
+# Directories
+SCRIPTS_DIR="./"                        # The directory for scripts
+EXPORT_DATA="../viscosity_runs"         # Location to export run data
+
+# Files
+INPUT="visc.in"                         # The LAMMPS input file
+THERMO="system.txt"                     # File containing thermodynamic data
+TEMP="temperature.txt"                  # The temperature of the run
+
+
+# Extract data
+${PYTHON} ${SCRIPTS_DIR}tg.py\
+	"-d${EXPORT_DATA}"\
+	"-n${THERMO}"\
+	"-t${TEMP}"\
