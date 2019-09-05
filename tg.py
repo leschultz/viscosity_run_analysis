@@ -2,6 +2,7 @@ from matplotlib import pyplot as pl
 from functions import finder, data_parse
 from scipy.constants import physical_constants
 from scipy.interpolate import UnivariateSpline
+from scipy.stats import linregress
 
 import pandas as pd
 import scipy as sc
@@ -132,43 +133,108 @@ def opt(x, y):
     return xcut, endpoints, middle_rmse
 
 
-def tg(df):
+def plots(
+          x,
+          y,
+          xcut,
+          ycut,
+          xfitcut,
+          yfitcut,
+          k,
+          s,
+          tg,
+          endpoints,
+          middle_rmse
+          ):
     '''
-    Calculate the glass transition temperature based on E-3kT.
+    The plotting code for determining Tg.
 
     inputs:
-        df = The data for the run.
+        x = The temperature data.
+        y = The E-3kT data.
+        xcut = The cut temperature data.
+        ycut = The cut E-3kT data.
+        xcut = The cut temperature data fit with a spline.
+        ycut = The cut E-3kT data fit with a spline.
+        k = The degree of spline.
+        s = The spline smoothing factor.
+        tg = The glass transition temperature.
+        endpoints = The endpoints for error algorithm.
+        middle_rmse = The RMSE for error algorithm.
+
     outputs:
+        NAplots(x, y, k, s, tg, endpoints, middle_rmse)
     '''
-    k = sc.constants.physical_constants['Boltzmann constant in eV/K']
 
-    df = pd.DataFrame()
+    fig, ax = pl.subplots(2)
 
-    e = self.dfsys['TotEng']/self.natoms-3.*k[0]*self.dfsys['Temp']
+    ax[0].plot(
+               x,
+               y,
+               marker='.',
+               linestyle='none',
+               color='b',
+               label='data'
+               )
 
-    df['Temp'] = self.dfsys['Temp']
-    df['E-3kT'] = e
+    ax[0].set_ylabel('E-3kT [K/atom]')
+    ax[0].grid()
+    ax[0].legend()
 
-    # Use data at and after start of cooling
-    condition = self.dfsys['Step'] >= self.hold1
-    dfcool = df[condition]
-    dfcool = dfcool.sort_values(by=['Temp'])
+    ax[1].plot(
+               xcut,
+               ycut,
+               marker='.',
+               linestyle='none',
+               color='b',
+               label='data'
+               )
 
-    x = dfcool['Temp'].values
-    y = dfcool['E-3kT'].values
+    ax[1].plot(
+               xfitcut,
+               yfitcut,
+               linestyle='-',
+               label='Univariate Spline (k='+str(k)+', s='+str(s)+')'
+               )
 
-    # Cutoff region
-    condition = x <= max_temp
-    xcut = x[condition]
-    ycut = y[condition]
+    ax[1].axvline(
+                  tg,
+                  linestyle='--',
+                  color='g',
+                  label='Tg = '+str(tg)+' [K]'
+                  )
 
-    # Spline fit of cut region
-    k, s = (5, 1)
-    spl = UnivariateSpline(x=xcut, y=ycut, k=k, s=s)
-    xfitcut = np.linspace(xcut[0], xcut[-1], 100)
-    yfitcut = spl(xfitcut)
+    ax[1].grid()
+    ax[1].legend()
 
-    tg, endpoints, middle_rmse = opt(xfitcut, yfitcut)
+    ax[1].set_xlabel('Temperature [K]')
+    ax[1].set_ylabel('E-3kT [K/atom]')
+
+    fig.set_size_inches(15, 10, forward=True)
+    pl.show()
+
+    pl.close('all')
+
+    fig, ax = pl.subplots()
+
+    ax.plot(endpoints, middle_rmse, label='Mean RMSE')
+
+    ax.axvline(
+               tg,
+               linestyle='--',
+               color='r',
+               label='Tg = '+str(tg)+' [K]'
+               )
+
+    ax.set_xlabel('End Temperature [K]')
+    ax.set_ylabel('RMSE')
+    ax.grid()
+    ax.legend()
+
+    fig.tight_layout()
+
+    pl.show()
+    pl.close('all')
 
 
 def run_iterator(path, filename, tempfile):
@@ -225,18 +291,23 @@ def run_iterator(path, filename, tempfile):
     df['etot/atom'] = df['etot']/df['atoms']
     df['etot/atom-3kT'] = df['etot/atom']-3.0*k*df['hold_temp']
 
-    # Gather specific volume
-    df['vol/atom'] = df['vol']/df['atoms']
-
+    # Sort by temperature values
     df = df.sort_values(by=['temp'])
 
-    groups = df.groupby(['system'])
+    groups = df.groupby(['system', 'hold_temp'])
 
-    for i, j in groups:
+    mean = groups.mean().add_suffix('_mean').reset_index()
 
-        x = j['temp']
-        y = j['etot/atom-3kT']
-        print(x)
+    groups = mean.groupby(['system'])
+
+    for i, j in groups: 
+
+        x = j['temp_mean'].values
+        y = j['etot/atom-3kT_mean'].values
+
+        # Filter repeated values
+        x, index = np.unique(x, return_index=True)
+        y = y[index]
 
         # Cutoff region
         xcut = x
@@ -249,6 +320,20 @@ def run_iterator(path, filename, tempfile):
         yfitcut = spl(xfitcut)
 
         tg, endpoints, middle_rmse = opt(xfitcut, yfitcut)
+
+        plots(
+              x,
+              y,
+              xcut,
+              ycut,
+              xfitcut,
+              yfitcut,
+              k,
+              s,
+              tg,
+              endpoints,
+              middle_rmse
+              )
 
 
 run_iterator(args.d, args.n, args.t)

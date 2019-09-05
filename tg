@@ -9,7 +9,7 @@ EXPORT_DATA="../viscosity_runs"         # Location to export run data
 
 # Files
 INPUT="visc.in"                         # The LAMMPS input file
-THERMO="system.txt"                     # File containing thermodynamic data
+THERMO="system_nvt.txt"                 # File containing thermodynamic data
 TEMP="temperature.txt"                  # The temperature of the run
 
 
