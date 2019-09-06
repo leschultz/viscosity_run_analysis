@@ -288,22 +288,22 @@ def run_iterator(path, filename, tempfile):
 
     # Calculate E-3kT
     df['etot'] = df['pe']+df['ke']
-    df['etot/atom'] = df['etot']/df['atoms']
-    df['etot/atom-3kT'] = df['etot/atom']-3.0*k*df['hold_temp']
+    df['etot/atoms'] = df['etot']/df['atoms']
+    df['etot/atoms-3kT'] = df['etot/atoms']-3.0*k*df['hold_temp']
+
+    df['vol/atoms'] = df['vol']/df['atoms']
 
     # Sort by temperature values
     df = df.sort_values(by=['temp'])
 
     groups = df.groupby(['system', 'hold_temp'])
-
     mean = groups.mean().add_suffix('_mean').reset_index()
-
     groups = mean.groupby(['system'])
 
     for i, j in groups: 
 
         x = j['temp_mean'].values
-        y = j['etot/atom-3kT_mean'].values
+        y = j['etot/atoms-3kT_mean'].values
 
         # Filter repeated values
         x, index = np.unique(x, return_index=True)
@@ -321,6 +321,7 @@ def run_iterator(path, filename, tempfile):
 
         tg, endpoints, middle_rmse = opt(xfitcut, yfitcut)
 
+        print(i)
         plots(
               x,
               y,
