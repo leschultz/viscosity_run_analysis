@@ -5,9 +5,9 @@ PYTHON="python3"                        # Python version installed (3 or above)
 
 # Directories
 SCRIPTS_DIR="./"                        # The directory for scripts
-DATA="../viscosity_runs"                # Directory were data is stored
-EXPORT_DATA="../viscosity_runs_data"    # Location to export run data
-EXPORT_PLOTS="../viscosity_runs_plots"  # Location to export run plots
+DATA="../jobs"                          # Directory were data is stored
+EXPORT_DATA="../jobs_data"              # Location to export run data
+EXPORT_PLOTS="../jobs_plots"            # Location to export run plots
 
 
 # Files
