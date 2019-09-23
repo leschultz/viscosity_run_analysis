@@ -5,13 +5,16 @@ PYTHON="python3"                        # Python version installed (3 or above)
 
 # Directories
 SCRIPTS_DIR="./"                        # The directory for scripts
-EXPORT_DATA="../jobs"                   # Location to export run data
+EXPORT_DATA="../jobs"                   # Location of run data
+SAVE_DATA="../jobs_data"                # Location to save analysis data
+SAVE_FIGS="../jobs_plots"               # Location to save plots
 
 # Files
 INPUT="visc.in"                         # The LAMMPS input file
 THERMO="system_nvt.txt"                 # File containing thermodynamic data
 VISC="visc_nvt.txt"                     # The viscosity of the run
 TEMP="temperature.txt"                  # The temperature of the run
+TG="${SAVE_DATA}/tg.txt"                # The location of Tg data
 
 # Parameters
 VISC_CUT="1e-1"
@@ -22,4 +25,7 @@ ${PYTHON} ${SCRIPTS_DIR}fragility.py\
 	"-v${VISC}"\
 	"-n${THERMO}"\
 	"-t${TEMP}"\
+	"-g${TG}"\
 	"-c${VISC_CUT}"\
+	"-a${SAVE_DATA}"\
+	"-p${SAVE_FIGS}"\

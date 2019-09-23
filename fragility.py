@@ -49,11 +49,33 @@ parser.add_argument(
                     )
 
 parser.add_argument(
+                    '-g',
+                    action='store',
+                    type=str,
+                    help='The file containing Tg.'
+                    )
+
+parser.add_argument(
                     '-c',
                     action='store',
                     type=str,
                     help='The viscosity choice for T*.'
                     )
+
+parser.add_argument(
+                    '-a',
+                    action='store',
+                    type=str,
+                    help='Location to save analysis data.'
+                    )
+
+parser.add_argument(
+                    '-p',
+                    action='store',
+                    type=str,
+                    help='Location to save plots.'
+                    )
+
 
 args = parser.parse_args()
 
@@ -92,7 +114,6 @@ def fragility_plots(
     inputs:
         fig = The figure object.
         ax = The axes object.
-
         x = The temperature data.
         y = The viscosity data.
         xfit = x data used for interpolation.
@@ -130,7 +151,7 @@ def fragility_plots(
     fig.tight_layout()
 
 
-def run_iterator(path, filename, viscname, tempfile, visc_cut):
+def run_iterator(path, filename, viscname, tgfilename, tempfile, visc_cut):
     '''
     Iterate through each run and gather data.
 
@@ -138,6 +159,7 @@ def run_iterator(path, filename, viscname, tempfile, visc_cut):
         path = The path where run data is.
         filename = The name of the file containing thermodynamic data.
         viscname = The name of the file containing viscosity data.
+        tgfilename = The name of the file containing Tg data.
         tempfile = The name of the file containing the hold temperature.
         visc_cut = The viscosity choice for T*.
 
@@ -150,6 +172,9 @@ def run_iterator(path, filename, viscname, tempfile, visc_cut):
     paths = finder(filename, path)
 
     k = physical_constants['Boltzmann constant in eV/K'][0]
+
+    # Glass transition data
+    tg = pd.read_csv(tgfilename)
 
     # Gather all data and make one dataframe
     df = []
@@ -186,33 +211,32 @@ def run_iterator(path, filename, viscname, tempfile, visc_cut):
     df['atoms'] = df['atoms'].apply(lambda x: [int(i) for i in x])
     df['atoms'] = df['atoms'].apply(lambda x: sum(x))
 
-    # Calculate E-3kT
-    df['etot'] = df['pe']+df['ke']
-    df['etot/atoms'] = df['etot']/df['atoms']
-    df['etot/atoms-3kT'] = df['etot/atoms']-3.0*k*df['hold_temp']
-
     # Group data by run
     groups = df.groupby(['job', 'hold_temp'])
     mean = groups.mean().add_suffix('_mean').reset_index()
     groups = mean.groupby(['job'])
 
     # Determine Tg from minimum value (only works for super small systems)
-    tg = mean.loc[groups['etot/atoms-3kT_mean'].idxmin()][['job', 'temp_mean']]
-    mean = mean.merge(tg, on='job', how='outer', suffixes=('', '_Tg'))
-    mean.rename(columns={'temp_mean_Tg':'Tg'}, inplace=True)
+    mean = mean.merge(tg, on='job', how='outer')
     groups = mean.groupby(['job'])
 
     fig, ax = pl.subplots()
 
-    data = {'job': [], 'tg/tstar': [], 'visc':[]}
+    data = {
+            'job': [],
+            'visc': [],
+            'tg': [],
+            'tstar': [],
+            'tg/tstar': [],
+            }
+
     for i, j in groups:
         data['job'].append(i)
 
         x = j['temp_mean'].values
         y = j['visc_mean'].values
 
-        tg = np.unique(j['Tg'].values)[0]  # Tg based on minimum of curve
-        numerator = tg
+        tg = np.unique(j['tg'].values)[0]  # Tg based on minimum of curve
 
         # Cut viscosities below Tg
         indexes = (x > tg)
@@ -224,15 +248,18 @@ def run_iterator(path, filename, viscname, tempfile, visc_cut):
 
         idx = find_nearest(yfit, visc_cut)
 
-        data['tg/tstar'].append(numerator/xfit[idx])
+        tstar = xfit[idx]
         data['visc'].append(yfit[idx])
+        data['tg'].append(tg)
+        data['tstar'].append(tstar)
+        data['tg/tstar'].append(tg/tstar)
 
         fragility_plots(
                         fig,
                         ax,
-                        numerator/x,
+                        tg/x,
                         y,
-                        numerator/xfit,
+                        tg/xfit,
                         yfit,
                         visc_cut,
                         i,
@@ -240,12 +267,22 @@ def run_iterator(path, filename, viscname, tempfile, visc_cut):
 
     ax.axhline(visc_cut, linestyle=':', label='Viscosity Choice')
 
-    fig.savefig('../correlation/fragility.png')
     pl.close('all')
 
     data = pd.DataFrame(data)
-    data.to_csv('../correlation/data.txt', index=False)
-    print(data)
+
+    return fig, ax, data
 
 
-run_iterator(args.d, args.n, args.v,  args.t, ast.literal_eval(args.c))
+fig, ax, data = run_iterator(
+                             args.d,
+                             args.n,
+                             args.v,
+                             args.g,
+                             args.t,
+                             ast.literal_eval(args.c)
+                             )
+
+data.to_csv(os.path.join(args.a, 'fragility.txt'), index=False)
+fig.savefig(os.path.join(args.p, 'fragility.png'))
+print(data)
