@@ -146,7 +146,6 @@ def fragility_plots(
 
     ax.set_xlabel(r'$T_{g}/Temperature$ $[K^{-1}]$')
     ax.set_ylabel(r'Viscosity $[Pa \cdot s]$')
-    ax.set_yscale('log')
 
     fig.tight_layout()
 
@@ -265,7 +264,12 @@ def run_iterator(path, filename, viscname, tgfilename, tempfile, visc_cut):
                         i,
                         )
 
-    ax.axhline(visc_cut, linestyle=':', label='Viscosity Choice')
+    ax.axhline(
+               visc_cut,
+               linestyle=':',
+               label='Viscosity Choice',
+               color='k',
+               )
 
     pl.close('all')
 

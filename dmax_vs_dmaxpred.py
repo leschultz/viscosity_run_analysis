@@ -1,8 +1,17 @@
 from matplotlib import pyplot as pl
 import pandas as pd
+import numpy as np
+
+# Fitting parameters
+loddmaxsquared = -10.36
+t = 25.6
+m = 0.0481
+
+dfdmax = pd.read_csv('../../dmax_johnson/matches.txt')
+print(dfdmax)
 
 df = pd.read_csv('../jobs_data/fragility.txt')
-df['dmax'] = [0.2, 0.2, 5.0, 3.0, 2.0, 1.0, 1.9e-5, 10.5]
+df['dmax'] = [4.3e-2, 1.9e-5, 10.8]
 
 x = df['tg/tstar'].values
 y = df['dmax'].values
@@ -15,6 +24,7 @@ for i, j in groups:
 
     x = j['tg/tstar'].values
     y = j['dmax'].values
+    y = np.log10(y**2.0)
 
     ax.plot(
             x,
@@ -33,5 +43,5 @@ ax.set_ylabel(r'$D_{max}$ [mm]')
 fig.tight_layout()
 fig.savefig('../jobs_plots/dmax_vs_tgovertstar')
 
-pl.show()
 print(df)
+pl.show()

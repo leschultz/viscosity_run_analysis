@@ -17,7 +17,7 @@ TEMP="temperature.txt"                  # The temperature of the run
 TG="${SAVE_DATA}/tg.txt"                # The location of Tg data
 
 # Parameters
-VISC_CUT="1e-1"
+VISC_CUT="0.3"
 
 # Extract data
 ${PYTHON} ${SCRIPTS_DIR}fragility.py\
