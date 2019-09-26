@@ -23,7 +23,7 @@ groups = df.groupby('composition')
 for i, j in groups:
 
     x = j['TL (K)'].values/j['tstar'].values
-    y = j['dexp (mm)'].values**2
+    y = j['m'].values
 
     ax.plot(
             x,
@@ -33,16 +33,32 @@ for i, j in groups:
             label=i
             )
 
+x = df['TL (K)'].values/df['tstar'].values
+y = df['m'].values
+
+degree=3
+coefs = np.polyfit(x, y, degree)
+ffit = np.poly1d(coefs)
+
+xfit = np.linspace(min(x), max(x))
+yfit = ffit(xfit)
+
+ax.plot(
+        xfit,
+        yfit,
+        linestyle=':',
+        color='k',
+        label='Polynomial Fit Degree='+str(degree)
+        )
+
 ax.grid()
 ax.legend()
 
 ax.set_xlabel(r'$T_{l}/T^{*}$')
-ax.set_ylabel(r'$D_{max}^{2}$ $[mm^{2}]$')
-
-ax.set_yscale('log')
+ax.set_ylabel(r'm')
 
 fig.tight_layout()
-fig.savefig('../jobs_plots/dmax_vs_tlovertstar')
+fig.savefig('../jobs_plots/tlovertstar_fragility_fit')
 
 print(df)
 pl.show()

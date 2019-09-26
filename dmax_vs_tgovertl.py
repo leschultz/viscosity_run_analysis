@@ -22,7 +22,7 @@ groups = df.groupby('composition')
 
 for i, j in groups:
 
-    x = j['TL (K)'].values/j['tstar'].values
+    x = j['tg'].values/j['TL (K)'].values
     y = j['dexp (mm)'].values**2
 
     ax.plot(
@@ -36,13 +36,13 @@ for i, j in groups:
 ax.grid()
 ax.legend()
 
-ax.set_xlabel(r'$T_{l}/T^{*}$')
+ax.set_xlabel(r'$T_{rg}$')
 ax.set_ylabel(r'$D_{max}^{2}$ $[mm^{2}]$')
 
 ax.set_yscale('log')
 
 fig.tight_layout()
-fig.savefig('../jobs_plots/dmax_vs_tlovertstar')
+fig.savefig('../jobs_plots/dmax_vs_tgovertl')
 
 print(df)
 pl.show()
