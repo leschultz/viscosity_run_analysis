@@ -36,7 +36,7 @@ for i, j in groups:
 ax.grid()
 ax.legend()
 
-ax.set_xlabel(r'$1000/T^{*}$')
+ax.set_xlabel(r'$T_{l}/T^{*}$')
 ax.set_ylabel(r'$D_{max}^{2}$ $[mm^{2}]$')
 
 ax.set_yscale('log')

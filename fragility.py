@@ -142,7 +142,6 @@ def fragility_plots(
             )
 
     ax.grid()
-    ax.legend()
 
     ax.set_xlabel(r'$1000/Temperature$ $[K^{-1}]$')
     ax.set_ylabel(r'Viscosity $[Pa \cdot s]$')
@@ -236,13 +235,17 @@ def run_iterator(path, filename, viscname, tgfilename, tempfile, visc_cut):
 
         tg = np.unique(j['tg'].values)[0]
 
-        # Cut viscosities below Tg
-        indexes = (x > tg)
+        xfit = np.linspace(min(x), max(x), 10000)
+        yfit = interp1d(x, y)(xfit)
+
+        # Cut viscosities below threshold
+        indexes = (y < visc_cut)
         x = x[indexes]
         y = y[indexes]
 
-        xfit = np.linspace(min(x), max(x), 1000)
-        yfit = interp1d(x, y)(xfit)
+        indexes = (yfit < visc_cut)
+        xfit = xfit[indexes]
+        yfit = yfit[indexes]
 
         idx = find_nearest(yfit, visc_cut)
 
@@ -266,10 +269,13 @@ def run_iterator(path, filename, viscname, tgfilename, tempfile, visc_cut):
     ax.axhline(
                visc_cut,
                linestyle=':',
-               label='Viscosity Choice',
+               label='Viscosity Cutoff',
                color='k',
                )
 
+    ax.legend()
+
+    pl.show()
     pl.close('all')
 
     data = pd.DataFrame(data)
