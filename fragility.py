@@ -144,7 +144,7 @@ def fragility_plots(
     ax.grid()
     ax.legend()
 
-    ax.set_xlabel(r'$T_{g}/Temperature$ $[K^{-1}]$')
+    ax.set_xlabel(r'$1000/Temperature$ $[K^{-1}]$')
     ax.set_ylabel(r'Viscosity $[Pa \cdot s]$')
 
     fig.tight_layout()
@@ -226,7 +226,6 @@ def run_iterator(path, filename, viscname, tgfilename, tempfile, visc_cut):
             'visc': [],
             'tg': [],
             'tstar': [],
-            'tg/tstar': [],
             }
 
     for i, j in groups:
@@ -235,7 +234,7 @@ def run_iterator(path, filename, viscname, tgfilename, tempfile, visc_cut):
         x = j['temp_mean'].values
         y = j['visc_mean'].values
 
-        tg = np.unique(j['tg'].values)[0]  # Tg based on minimum of curve
+        tg = np.unique(j['tg'].values)[0]
 
         # Cut viscosities below Tg
         indexes = (x > tg)
@@ -251,14 +250,14 @@ def run_iterator(path, filename, viscname, tgfilename, tempfile, visc_cut):
         data['visc'].append(yfit[idx])
         data['tg'].append(tg)
         data['tstar'].append(tstar)
-        data['tg/tstar'].append(tg/tstar)
 
+        numerator = 1000
         fragility_plots(
                         fig,
                         ax,
-                        tg/x,
+                        numerator/x,
                         y,
-                        tg/xfit,
+                        numerator/xfit,
                         yfit,
                         visc_cut,
                         i,
