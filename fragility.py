@@ -1,3 +1,4 @@
+from matplotlib import colors as mcolors
 from matplotlib import pyplot as pl
 
 from functions import finder, data_parse
@@ -15,6 +16,10 @@ import ast
 import os
 import re
 
+# Colors for plots
+colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
+colors = [j for i, j in colors.items()]
+colors = iter(colors)
 
 parser = argparse.ArgumentParser(
                                  description='Arguments for gathering Tg.'
@@ -128,7 +133,7 @@ def fragility_plots(
     line = ax.plot(
                    x,
                    y,
-                   marker='.',
+                   marker='8',
                    linestyle='none',
                    )
 
@@ -204,7 +209,7 @@ def run_iterator(path, filename, viscname, tgfilename, tempfile, visc_cut):
     df['job'] = df['run'].apply(lambda x: x.split('/run/')[0])
 
     # The number of atoms from naming convention
-    df['atoms'] = df['job'].apply(lambda x: re.split('(\d+)', x))
+    df['atoms'] = df['job'].apply(lambda x: re.split('(\d+)', x.split('_')[1]))
     df['atoms'] = df['atoms'].apply(lambda x: [i for i in x if i.isnumeric()])
     df['atoms'] = df['atoms'].apply(lambda x: [int(i) for i in x])
     df['atoms'] = df['atoms'].apply(lambda x: sum(x))
@@ -214,7 +219,7 @@ def run_iterator(path, filename, viscname, tgfilename, tempfile, visc_cut):
     mean = groups.mean().add_suffix('_mean').reset_index()
     groups = mean.groupby(['job'])
 
-    # Determine Tg from minimum value (only works for super small systems)
+    # Combine Tg
     mean = mean.merge(tg, on='job', how='outer')
     groups = mean.groupby(['job'])
 
@@ -230,7 +235,7 @@ def run_iterator(path, filename, viscname, tgfilename, tempfile, visc_cut):
     for i, j in groups:
         data['job'].append(i)
 
-        x = j['temp_mean'].values
+        x = j['hold_temp'].values
         y = j['visc_mean'].values
 
         tg = np.unique(j['tg'].values)[0]
@@ -275,23 +280,140 @@ def run_iterator(path, filename, viscname, tgfilename, tempfile, visc_cut):
 
     ax.legend()
 
-    pl.show()
     pl.close('all')
 
     data = pd.DataFrame(data)
 
-    return fig, ax, data
+    return fig, ax, data, df
 
 
-fig, ax, data = run_iterator(
-                             args.d,
-                             args.n,
-                             args.v,
-                             args.g,
-                             args.t,
-                             ast.literal_eval(args.c)
-                             )
+# Glass transition data
+tg = pd.read_csv(args.g)
+
+fig, ax, data, df = run_iterator(
+                                 args.d,
+                                 args.n,
+                                 args.v,
+                                 args.g,
+                                 args.t,
+                                 ast.literal_eval(args.c)
+                                 )
 
 data.to_csv(os.path.join(args.a, 'fragility.txt'), index=False)
 fig.savefig(os.path.join(args.p, 'fragility.png'))
+
+# Take mean values for each hold
+groups = df.groupby(['job', 'hold_temp'])
+mean = groups.mean().add_suffix('').reset_index()
+mean = mean.merge(tg, on='job', how='outer')
+
+# Take composition from job name
+mean['composition'] = mean['job'].apply(lambda x: x.split('_')[1])
+
+# Take mean values for each composition
+groups = mean.groupby(['composition', 'hold_temp'])
+mean = groups.mean().add_suffix('_mean').reset_index()
+std = groups.std().add_suffix('_std').reset_index()
+sem = groups.sem().add_suffix('_sem').reset_index()
+count = groups.count().add_suffix('_count').reset_index()
+
+# Merge data
+df = mean.merge(sem)
+df = df.merge(std)
+df = df.merge(count)
+
+groups = df.groupby(['composition'])
+
+fig, ax = pl.subplots()
+
+data = {
+        'composition': [],
+        'visc': [],
+        'tg': [],
+        'tstar': [],
+        }
+
+visc_cut = ast.literal_eval(args.c)
+for i, j in groups:
+    data['composition'].append(i)
+
+    x = j['hold_temp'].values
+    y = j['visc_mean'].values
+    ystd = j['visc_std'].values
+    ysem = j['visc_sem'].values
+
+    tg = np.unique(j['tg_mean'].values)[0]
+
+    xfit = np.linspace(min(x), max(x), 10000)
+    yfit = interp1d(x, y)(xfit)
+
+    # Cut viscosities below threshold
+    indexes = (y < visc_cut)
+    x = x[indexes]
+    y = y[indexes]
+    ystd = ystd[indexes]
+    ysem = ysem[indexes]
+
+    indexes = (yfit < visc_cut)
+    xfit = xfit[indexes]
+    yfit = yfit[indexes]
+
+    idx = find_nearest(yfit, visc_cut)
+
+    tstar = xfit[idx]
+    data['visc'].append(yfit[idx])
+    data['tg'].append(tg)
+    data['tstar'].append(tstar)
+
+    color = next(colors)
+    ax.errorbar(
+                1000/x,
+                y,
+                ystd,
+                marker='8',
+                linestyle='none',
+                color=color,
+                ecolor='y',
+                )
+
+    ax.errorbar(
+                1000/x,
+                y,
+                ysem,
+                marker='8',
+                linestyle='none',
+                color=color,
+                ecolor='r',
+                )
+
+    ax.plot(
+            1000/xfit,
+            yfit,
+            color=color,
+            label=i
+            )
+
+    ax.grid()
+
+    ax.set_xlabel(r'$1000/Temperature$ $[K^{-1}]$')
+    ax.set_ylabel(r'Viscosity $[Pa \cdot s]$')
+
+    fig.tight_layout()
+
+ax.axhline(
+           visc_cut,
+           linestyle=':',
+           label='Viscosity Cutoff',
+           color='k',
+           )
+
+ax.legend()
+
+pl.close('all')
+
+data = pd.DataFrame(data)
+
+data.to_csv(os.path.join(args.a, 'fragility_mean.txt'), index=False)
+fig.savefig(os.path.join(args.p, 'fragility_mean.png'))
+
 print(data)

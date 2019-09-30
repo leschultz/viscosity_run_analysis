@@ -250,7 +250,7 @@ def run_iterator(path, filename, tempfile, k, s):
     df['job'] = df['run'].apply(lambda x: x.split('/run/')[0])
 
     # The number of atoms from naming convention
-    df['atoms'] = df['job'].apply(lambda x: re.split('(\d+)', x))
+    df['atoms'] = df['job'].apply(lambda x: re.split('(\d+)', x.split('_')[1]))
     df['atoms'] = df['atoms'].apply(lambda x: [i for i in x if i.isnumeric()])
     df['atoms'] = df['atoms'].apply(lambda x: [int(i) for i in x])
     df['atoms'] = df['atoms'].apply(lambda x: sum(x))
