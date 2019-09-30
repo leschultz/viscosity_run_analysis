@@ -199,7 +199,6 @@ def tg_plots(
 
     fig.tight_layout()
 
-    pl.show()
     pl.close('all')
 
     return tg
