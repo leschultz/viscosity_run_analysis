@@ -1,10 +1,16 @@
 from matplotlib import colors as mcolors
 from matplotlib import pyplot as pl
+from scipy.optimize import curve_fit
 from scipy import stats
+from sklearn.metrics import r2_score
 
 import pandas as pd
 import numpy as np
 import re
+
+
+def johnson(x, y, a, b, c):
+    return a+b*x+c*y
 
 
 # Colors for plots
@@ -52,49 +58,113 @@ dfw = df.merge(dfward, on=['composition'])
 dfj['tl/tstar'] = dfj['tl'].values/dfj['tstar'].values
 dfw['tl/tstar'] = dfw['tl'].values/dfw['tstar'].values
 
-dfj['trg'] = dfj['tg'].values/dfj['tl'].values
-dfw['trg'] = dfw['tg'].values/dfw['tl'].values
+x = dfj['tl/tstar'].values
+y = dfj['m'].values
+
+degree = 2
+coeffs = np.polyfit(x, y, degree)
+fit = np.poly1d(coeffs)
+
+xfit = np.linspace(min(x), max(x))
+yfitpoly = fit(xfit)
+
+dfw['m'] = fit(dfw['tl/tstar'].values)
+
+groups = dfj.groupby(['composition'])
+
+sig = 6
+coeffsstr = str([str(i)[:sig] for i in coeffs])
+
+fig, ax = pl.subplots()
+ax.plot(xfit, yfitpoly, label='Polyfit Coefficients '+coeffsstr)
+
+for i, j in groups:
+
+    x = j['tl/tstar'].values
+    y = j['m'].values
+
+    ax.plot(
+            x,
+            y,
+            marker='8',
+            linestyle='none',
+            label=i
+            )
+
+groups = dfw.groupby(['composition'])
+
+for i, j in groups:
+
+    x = j['tl/tstar'].values
+    y = j['m'].values
+
+    ax.plot(
+            x,
+            y,
+            marker='8',
+            linestyle='none',
+            label=i
+            )
+
+ax.grid()
+ax.legend()
+
+ax.set_xlabel(r'$T_{l}/T^{*}$')
+ax.set_ylabel(r'$m$')
+
+ax.set_yscale('log')
+
+fig.tight_layout()
+fig.savefig('../jobs_plots/m_vs_tlovertstar')
 
 print(dfj)
 print(dfw)
 
-dfj = dfj.groupby(['composition']).mean()
-dfj['composition'] = dfj.index
+groups = dfw.groupby(['composition'])
+meanw = groups.mean()
 
-dfw = dfw.groupby(['composition']).mean()
-dfw['composition'] = dfw.index
+dfw = meanw
 
-print(dfj)
-print(dfw)
+a = -10.36
+b = 25.6
+c = 0.0481
 
-columns = ['composition', 'trg', 'tl/tstar', 'dmax']
-dfj = dfj[columns]
-dfw = dfw[columns]
+df = pd.read_csv('../../dmax_johnson/johnson/data_clean.csv')
 
-data = dfj.append(dfw)
-data = data.dropna()
+df = df[['Alloy', 'Tg (K)', 'TL (K)', 'm', 'dexp (mm)', 'dcalc (mm)']]
+df.columns = ['composition', 'tg', 'tl', 'm', 'dmax', 'dcalc']
+df = df.dropna()
 
-print(data)
+df['trg'] = df['tg']/df['tl']
 
-X_train = data[['trg', 'tl/tstar']].values
+X_train = df[['trg', 'm']].values
 X_train = np.hstack((X_train, np.ones((X_train.shape[0],1))))
-y_train = np.log10(data['dmax'].values**2)
+y_train = np.log10(df['dmax'].values**2)
 
 w = np.matmul(np.matmul(np.linalg.inv(np.matmul(X_train.T, X_train)), X_train.T), y_train)
 a, b, c = w
 
-data['log(dmax^2)'] = np.log10(data['dmax']**2)
-data['log(dmax^2)_fit'] = a*data['trg']+b*data['tl/tstar']+c
+dfw['trg'] = dfw['tg']/dfw['tl']
+X_test = dfw[['trg', 'm']].values
+X_test = np.hstack((X_test, np.ones((X_test.shape[0],1))))
 
-x = data['log(dmax^2)_fit'].values
-y = data['log(dmax^2)'].values
+yw_original = np.log10(dfw['dmax']**2)
+yw_pred = np.matmul(X_test, w)
 
-print(y)
+df['log(dmax^2)'] = np.log10(df['dmax']**2)
+df['log(dmax^2)_fit'] = a*df['trg']+b*df['m']+c
+
+x = df['log(dmax^2)_fit'].values
+y = df['log(dmax^2)'].values
+
 slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
 
 fig, ax = pl.subplots()
 
 ax.plot(x, y, marker='.', linestyle='none', label=r'[$\Lambda_{t}$, $\Lambda_{m}$, $log_{10}(dmax_{0}^{2})$]='+str(w)+'\n'+r'$r=$'+str(r_value))
+
+ax.plot(yw_pred, yw_original, marker='8', linestyle='none', label='Ward')
+
 
 ax.legend()
 ax.grid()
@@ -102,7 +172,5 @@ ax.grid()
 ax.set_xlabel(r'$log(dmax^2)$ fit [mm]')
 ax.set_ylabel(r'$log(dmax^2)$ [mm]')
 
-for i, txt in enumerate(data['composition']):
-    ax.annotate(txt, (x[i], y[i]))
-
 pl.show()
+print(df)

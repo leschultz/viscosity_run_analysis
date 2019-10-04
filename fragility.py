@@ -148,7 +148,7 @@ def fragility_plots(
 
     ax.grid()
 
-    ax.set_xlabel(r'$1000/Temperature$ $[K^{-1}]$')
+    ax.set_xlabel(r'$T_{g}/Temperature$ $[K^{-1}]$')
     ax.set_ylabel(r'Viscosity $[Pa \cdot s]$')
 
     fig.tight_layout()
@@ -171,7 +171,6 @@ def run_iterator(path, filename, viscname, tgfilename, tempfile, visc_cut):
     '''
 
     # Gather all applicable paths
-    print(filename, path)
     paths = finder(filename, path)
 
     k = physical_constants['Boltzmann constant in eV/K'][0]
@@ -182,6 +181,8 @@ def run_iterator(path, filename, viscname, tgfilename, tempfile, visc_cut):
     # Gather all data and make one dataframe
     df = []
     for item in paths:
+        print(item)
+
         job = os.path.commonprefix([item, path])
         job = item.strip(job)
 
@@ -259,7 +260,7 @@ def run_iterator(path, filename, viscname, tgfilename, tempfile, visc_cut):
         data['tg'].append(tg)
         data['tstar'].append(tstar)
 
-        numerator = 1000
+        numerator = tg
         fragility_plots(
                         fig,
                         ax,
@@ -367,7 +368,7 @@ for i, j in groups:
 
     color = next(colors)
     ax.errorbar(
-                1000/x,
+                tg/x,
                 y,
                 ystd,
                 marker='8',
@@ -377,7 +378,7 @@ for i, j in groups:
                 )
 
     ax.errorbar(
-                1000/x,
+                tg/x,
                 y,
                 ysem,
                 marker='8',
@@ -387,7 +388,7 @@ for i, j in groups:
                 )
 
     ax.plot(
-            1000/xfit,
+            tg/xfit,
             yfit,
             color=color,
             label=i
@@ -395,7 +396,7 @@ for i, j in groups:
 
     ax.grid()
 
-    ax.set_xlabel(r'$1000/Temperature$ $[K^{-1}]$')
+    ax.set_xlabel(r'$T_{g}/Temperature$ $[K^{-1}]$')
     ax.set_ylabel(r'Viscosity $[Pa \cdot s]$')
 
     fig.tight_layout()
