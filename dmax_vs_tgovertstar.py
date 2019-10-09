@@ -8,7 +8,7 @@ colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
 colors = [j for i, j in colors.items()]
 colors = iter(colors)
 
-dfjohnson = pd.read_csv('../../dmax_johnson/matches.txt')
+dfjohnson = pd.read_csv('../dmax_johnson/matches.txt')
 dfjohnson['Alloy'] = [
                       'Ni400P100',
                       'Cu250Zr250',
@@ -16,26 +16,35 @@ dfjohnson['Alloy'] = [
                       ]
 
 dfjohnson.rename(columns={'Alloy': 'composition'}, inplace=True)
+dfjohnson = dfjohnson[['composition', 'dexp (mm)', 'TL (K)']]
+dfjohnson.columns = ['composition', 'dmax', 'tl']
 
+dfward = pd.read_csv('../dmax_ward/matches.txt')
+
+# Composition for 500 atoms
+dfward['composition'] = [
+                         'Al0Cu200Zr300',
+                         'Ni300Nb200',
+                         'Cu250Zr250',
+                         'Cu250Zr250',
+                         'Al35Cu230Zr235',
+                         'Al35Cu225Zr240',
+                         ]
+
+dftl = pd.read_csv('../tl/tl.txt')
+dftl = dftl.dropna()
+
+dfward = dfward.merge(dftl, on=['composition'])
+dfward = dfward[['composition', 'D_max', 'tl']]
+dfward.columns = ['composition', 'dmax', 'tl']
 
 df = pd.read_csv('../jobs_data/fragility.txt')
 df['composition'] = df['job'].apply(lambda x: x.split('_')[1])
-df = df.merge(dfjohnson, on=['composition'])
 
-columns = [
-           'job',
-           'composition',
-           'visc',
-           'tg',
-           'TL (K)',
-           'tstar',
-           'm',
-           'dexp (mm)'
-           ]
+dfjohnson = df.merge(dfjohnson, on=['composition'])
+dfward = df.merge(dfward, on=['composition'])
 
-df = df[columns]
-df.columns = ['job', 'composition', 'visc', 'tg', 'tl', 'tstar', 'm', 'dmax']
-print(df)
+df = pd.concat([dfjohnson, dfward])
 
 # Gather Tg/T* and Tg/Tl
 df['tg/tstar'] = df['tg'].values/df['tstar'].values
