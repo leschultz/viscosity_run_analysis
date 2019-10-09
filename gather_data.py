@@ -190,35 +190,40 @@ def run_iterator(
         job = os.path.commonprefix([item, path])
         job = item.strip(job)
 
-        # Progress print
-        print('Analyzing ('+str(count)+'/'+runs+'): '+job)
+        try:
 
-        df, units = run_data(item, *args, **kwargs)  # Data
-        fig, ax = run_plot(df, units)  # Plots
+            # Progress print
+            print('Analyzing ('+str(count)+'/'+runs+'): '+job)
 
-        # Gather the hold temperature
-        hold_temp = np.unique(df['hold_temp'].values)[0]
+            df, units = run_data(item, *args, **kwargs)  # Data
+            fig, ax = run_plot(df, units)  # Plots
 
-        # Gather the final viscosity values
-        visc_final = df['visc'].values[-1]
+            # Gather the hold temperature
+            hold_temp = np.unique(df['hold_temp'].values)[0]
 
-        # Collect the job id, hold temperature, and final viscosity
-        df_all.loc[count] = [job, hold_temp, visc_final]
+            # Gather the final viscosity values
+            visc_final = df['visc'].values[-1]
 
-        datastore = join(data_path, job)  # Data path
-        plotstore = join(plot_path, job)  # Plot path
+            # Collect the job id, hold temperature, and final viscosity
+            df_all.loc[count] = [job, hold_temp, visc_final]
 
-        # Create data and plot path if they do not exist
-        create_dir(datastore)
-        create_dir(plotstore)
+            datastore = join(data_path, job)  # Data path
+            plotstore = join(plot_path, job)  # Plot path
 
-        # Save Data
-        df.to_csv(join(datastore, 'data.txt'), index=False)
+            # Create data and plot path if they do not exist
+            create_dir(datastore)
+            create_dir(plotstore)
 
-        # Save plots
-        fig.savefig(join(plotstore, 'gk_viscosity_vs_time'))
+            # Save Data
+            df.to_csv(join(datastore, 'data.txt'), index=False)
 
-        count += 1
+            # Save plots
+            fig.savefig(join(plotstore, 'gk_viscosity_vs_time'))
+
+            count += 1
+
+        except Exception:
+            print('Problem with: '+job)
 
     return df_all
 

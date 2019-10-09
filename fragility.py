@@ -148,7 +148,7 @@ def fragility_plots(
 
     ax.grid()
 
-    ax.set_xlabel(r'$T_{g}/Temperature$ $[K^{-1}]$')
+    ax.set_xlabel(r'$T_{g}/Temperature$ $[-]$')
     ax.set_ylabel(r'Viscosity $[Pa \cdot s]$')
 
     fig.tight_layout()
@@ -396,7 +396,7 @@ for i, j in groups:
 
     ax.grid()
 
-    ax.set_xlabel(r'$T_{g}/Temperature$ $[K^{-1}]$')
+    ax.set_xlabel(r'$T_{g}/Temperature$ $[-]$')
     ax.set_ylabel(r'Viscosity $[Pa \cdot s]$')
 
     fig.tight_layout()

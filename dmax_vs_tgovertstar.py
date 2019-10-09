@@ -22,8 +22,24 @@ df = pd.read_csv('../jobs_data/fragility.txt')
 df['composition'] = df['job'].apply(lambda x: x.split('_')[1])
 df = df.merge(dfjohnson, on=['composition'])
 
-# Gather Tl/T*
-df['tl/tstar'] = df['TL (K)'].values/df['tstar'].values
+columns = [
+           'job',
+           'composition',
+           'visc',
+           'tg',
+           'TL (K)',
+           'tstar',
+           'm',
+           'dexp (mm)'
+           ]
+
+df = df[columns]
+df.columns = ['job', 'composition', 'visc', 'tg', 'tl', 'tstar', 'm', 'dmax']
+print(df)
+
+# Gather Tg/T* and Tg/Tl
+df['tg/tstar'] = df['tg'].values/df['tstar'].values
+df['trg'] = df['tg'].values/df['tl'].values
 
 # Take mean values for each composition
 groups = df.groupby(['composition'])
@@ -42,10 +58,10 @@ groups = df.groupby(['composition'])
 fig, ax = pl.subplots()
 for i, j in groups:
 
-    x = j['tl/tstar_mean'].values
-    y = j['dexp (mm)_mean'].values**2
-    xstd = j['tl/tstar_std'].values
-    xsem = j['tl/tstar_sem'].values
+    x = j['tg/tstar_mean'].values
+    y = j['dmax_mean'].values**2
+    xstd = j['tg/tstar_std'].values
+    xsem = j['tg/tstar_sem'].values
 
     ax.errorbar(
                 x,
@@ -71,13 +87,13 @@ for i, j in groups:
 ax.grid()
 ax.legend()
 
-ax.set_xlabel(r'$T_{l}/T^{*}$')
+ax.set_xlabel(r'$T_{g}/T_{*}$')
 ax.set_ylabel(r'$D_{max}^{2}$ $[mm^{2}]$')
 
 ax.set_yscale('log')
 
 fig.tight_layout()
-fig.savefig('../jobs_plots/dmax_vs_tlovertstar')
+fig.savefig('../jobs_plots/dmax_vs_tgovertstar')
 
 print(df)
 pl.show()
